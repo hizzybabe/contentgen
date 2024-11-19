@@ -83,7 +83,18 @@ function generateContent() {
             throw new Error(data.error);
         }
         addLog('Content generated successfully!');
-        generatedContent.innerHTML = data.content;
+        const contentDiv = document.getElementById('generated-content');
+        contentDiv.className = 'mt-6 generated-content relative p-6 bg-gray-50 dark:bg-gray-800 rounded-lg';
+        
+        // Create a wrapper for the content
+        const contentWrapper = document.createElement('div');
+        contentWrapper.className = 'markdown-content';
+        contentWrapper.innerHTML = renderMarkdown(data.content);
+        
+        // Clear previous content and add new content
+        contentDiv.innerHTML = '';
+        contentDiv.appendChild(contentWrapper);
+        contentDiv.appendChild(addCopyButton(contentWrapper));
     })
     .catch(error => {
         addLog(`Error occurred: ${error.message}`);
@@ -96,11 +107,14 @@ function generateContent() {
 }
 
 function renderMarkdown(content) {
-    // You can use a markdown library like marked.js
-    // For now, we'll do basic formatting
-    return content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                 .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                 .replace(/\n/g, '<br>');
+    // Configure marked options
+    marked.setOptions({
+        breaks: true,
+        gfm: true
+    });
+    
+    // Convert markdown to HTML
+    return marked.parse(content);
 }
 
 function addCopyButton(element) {
