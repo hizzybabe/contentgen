@@ -52,11 +52,11 @@ function generateContent() {
 
     const data = {
         tone: document.getElementById('tone').value,
-        brand_voice: document.getElementById('brand-voice').value,
-        word_count: document.getElementById('word-count').value,
-        main_prompt: document.getElementById('main-prompt').value,
+        brand_voice: document.getElementById('brand_voice').value,
+        word_count: document.getElementById('word_count').value,
+        main_prompt: document.getElementById('main_prompt').value,
         language: document.getElementById('language').value,
-        content_style: document.getElementById('content-style').value
+        content_style: document.getElementById('content_style').value
     };
 
     addLog('Sending request to AI model...');
