@@ -37,8 +37,12 @@ function generateContent() {
     const statusLog = document.getElementById('status-log');
     const generatedContent = document.getElementById('generated-content');
     
-    statusMessages.classList.remove('hidden');
+    // Reset previous content and logs
+    statusLog.innerHTML = '';
     generatedContent.innerHTML = '';
+    
+    // Show status messages if hidden
+    statusMessages.classList.remove('hidden');
     
     function addLog(message) {
         const time = new Date().toLocaleTimeString();
