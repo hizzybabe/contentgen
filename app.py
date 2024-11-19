@@ -28,8 +28,24 @@ class User(UserMixin):
         self.id = id_
         self.name = name
         self.email = email
-        # Store user in memory
+        self.generations_today = 0
+        self.last_generation_date = None
         users[id_] = self
+
+    def can_generate(self):
+        from datetime import datetime, timedelta
+        today = datetime.now().date()
+        
+        # Reset counter if it's a new day
+        if self.last_generation_date and self.last_generation_date != today:
+            self.generations_today = 0
+            
+        return self.generations_today < 15
+
+    def increment_generations(self):
+        from datetime import datetime
+        self.generations_today += 1
+        self.last_generation_date = datetime.now().date()
 
     @staticmethod
     def get(user_id):
@@ -131,6 +147,11 @@ def index():
 @app.route('/generate-content', methods=['POST'])
 @login_required
 def generate_content():
+    if not current_user.can_generate():
+        return jsonify({
+            "error": "Daily generation limit reached (15/day). Please try again tomorrow."
+        }), 429
+
     data = request.json
     tone = data.get("tone")
     brand_voice = data.get("brand_voice")
@@ -166,7 +187,12 @@ def generate_content():
 
         # Handle the response from the Gemini API
         if response and hasattr(response, 'text'):
-            return jsonify({"content": response.text})
+            # Increment the user's generation count
+            current_user.increment_generations()
+            return jsonify({
+                "content": response.text,
+                "remaining_generations": 15 - current_user.generations_today
+            })
         else:
             return jsonify({"error": "Failed to generate content"}), 500
 

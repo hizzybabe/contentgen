@@ -33,7 +33,6 @@ document.getElementById('themeToggle').addEventListener('click', function() {
 });
 
 function generateContent() {
-    // Show loading indicator
     const statusMessages = document.getElementById('status-messages');
     const statusLog = document.getElementById('status-log');
     const generatedContent = document.getElementById('generated-content');
@@ -41,7 +40,6 @@ function generateContent() {
     statusMessages.classList.remove('hidden');
     generatedContent.innerHTML = '';
     
-    // Log function
     function addLog(message) {
         const time = new Date().toLocaleTimeString();
         statusLog.innerHTML += `<div>[${time}] ${message}</div>`;
@@ -59,8 +57,6 @@ function generateContent() {
         content_style: document.getElementById('content_style').value
     };
 
-    addLog('Sending request to AI model...');
-
     fetch('/generate-content', {
         method: 'POST',
         headers: {
@@ -69,6 +65,10 @@ function generateContent() {
         body: JSON.stringify(data)
     })
     .then(response => {
+        if (response.status === 429) {
+            addLog('Daily generation limit reached');
+            throw new Error('Daily generation limit reached (15/day). Please try again tomorrow.');
+        }
         if (response.status === 401) {
             addLog('Authentication required');
             window.location.href = '/login';
@@ -83,26 +83,21 @@ function generateContent() {
             throw new Error(data.error);
         }
         addLog('Content generated successfully!');
+        addLog(`Remaining generations today: ${data.remaining_generations}/15`);
+        
         const contentDiv = document.getElementById('generated-content');
         contentDiv.className = 'mt-6 generated-content relative p-6 bg-gray-50 dark:bg-gray-800 rounded-lg';
         
-        // Create a wrapper for the content
         const contentWrapper = document.createElement('div');
         contentWrapper.className = 'markdown-content';
         contentWrapper.innerHTML = renderMarkdown(data.content);
         
-        // Clear previous content and add new content
         contentDiv.innerHTML = '';
         contentDiv.appendChild(contentWrapper);
-        contentDiv.appendChild(addCopyButton(contentWrapper));
     })
     .catch(error => {
         addLog(`Error occurred: ${error.message}`);
-        generatedContent.innerHTML = `Error: ${error.message}`;
-    })
-    .finally(() => {
-        // Keep the status log visible but stop the spinner
-        document.querySelector('.animate-spin').classList.remove('animate-spin');
+        generatedContent.innerHTML = `<div class="error">${error.message}</div>`;
     });
 }
 
