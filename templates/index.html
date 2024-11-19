@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Content Generator</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         .generated-content {
             padding: 1.5rem;
@@ -98,6 +99,19 @@
 
         .dark #status-text {
             color: #e5e5e5;
+        }
+
+        .copy-button {
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .generated-content:hover .copy-button {
+            opacity: 1;
+        }
+
+        .generated-content {
+            position: relative;
         }
     </style>
 </head>

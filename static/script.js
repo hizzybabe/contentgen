@@ -94,3 +94,44 @@ function generateContent() {
         document.querySelector('.animate-spin').classList.remove('animate-spin');
     });
 }
+
+function renderMarkdown(content) {
+    // You can use a markdown library like marked.js
+    // For now, we'll do basic formatting
+    return content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                 .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                 .replace(/\n/g, '<br>');
+}
+
+function addCopyButton(element) {
+    const copyButton = document.createElement('button');
+    copyButton.innerHTML = `
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-12a2 2 0 00-2-2h-2M8 5a2 2 0 002 2h4a2 2 0 002-2M8 5a2 2 0 012-2h4a2 2 0 012 2"/>
+        </svg>
+        Copy
+    `;
+    copyButton.className = 'copy-button absolute top-2 right-2 flex items-center gap-1 px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600';
+    
+    copyButton.onclick = async () => {
+        const content = element.innerText;
+        await navigator.clipboard.writeText(content);
+        
+        copyButton.innerHTML = `
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            Copied!
+        `;
+        setTimeout(() => {
+            copyButton.innerHTML = `
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-12a2 2 0 00-2-2h-2M8 5a2 2 0 002 2h4a2 2 0 002-2M8 5a2 2 0 012-2h4a2 2 0 012 2"/>
+                </svg>
+                Copy
+            `;
+        }, 2000);
+    };
+    
+    return copyButton;
+}
