@@ -19,21 +19,21 @@ login_manager.login_view = 'login'
 # OAuth2 client setup
 client = WebApplicationClient(GOOGLE_CLIENT_ID)
 
+# Add this at the top of your file, after imports
+users = {}  # In-memory storage for users
+
 # User class
 class User(UserMixin):
     def __init__(self, id_, name, email):
         self.id = id_
         self.name = name
         self.email = email
+        # Store user in memory
+        users[id_] = self
 
     @staticmethod
     def get(user_id):
-        # Here you would typically get the user from a database
-        # For this example, we'll just return None if no user is found
-        try:
-            return User(user_id, "User Name", "user@example.com")
-        except Exception:
-            return None
+        return users.get(user_id)
 
     def __repr__(self):
         return f"User(id={self.id})"

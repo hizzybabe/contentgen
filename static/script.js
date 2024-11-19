@@ -58,42 +58,21 @@ document.getElementById('contentForm').addEventListener('submit', function(event
         },
         body: JSON.stringify(data)
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.content) {
-            // Create a new div for formatted content
-            const contentDiv = document.getElementById('generatedContent');
-            
-            // Convert markdown-like syntax to HTML
-            let formattedContent = data.content
-                // Convert headers
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                // Convert bullet points
-                .replace(/\* (.*?)(\n|$)/g, '<li>$1</li>')
-                // Convert numbered lists
-                .replace(/\d\. (.*?)(\n|$)/g, '<li>$1</li>')
-                // Convert paragraphs
-                .split('\n\n').join('</p><p>');
-
-            // Wrap bullet points in ul tags
-            if (formattedContent.includes('<li>')) {
-                formattedContent = '<ul>' + formattedContent + '</ul>';
-            }
-
-            // Add initial paragraph tag
-            formattedContent = '<p>' + formattedContent + '</p>';
-            
-            // Set the formatted HTML content
-            contentDiv.innerHTML = formattedContent;
-            
-            // Add some basic styling
-            contentDiv.classList.add('generated-content');
-        } else {
-            document.getElementById('generatedContent').innerHTML = 
-                "<p class='error'>Error: Unable to generate content.</p>";
+    .then(response => {
+        if (response.status === 401) {
+            // User is not authenticated
+            window.location.href = '/login';
+            throw new Error('Please log in to generate content');
         }
+        return response.json();
+    })
+    .then(data => {
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        document.getElementById('generated-content').innerHTML = data.content;
     })
     .catch(error => {
-        console.error('Error:', error);
+        document.getElementById('generated-content').innerHTML = `Error: ${error.message}`;
     });
 });
