@@ -36,7 +36,7 @@ function generateContent() {
     // Show loading indicator
     const statusMessages = document.getElementById('status-messages');
     const statusLog = document.getElementById('status-log');
-    const generatedContent = document.getElementById('generatedContent');
+    const generatedContent = document.getElementById('generated-content');
     
     statusMessages.classList.remove('hidden');
     generatedContent.innerHTML = '';
