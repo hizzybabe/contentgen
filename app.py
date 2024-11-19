@@ -26,6 +26,18 @@ class User(UserMixin):
         self.name = name
         self.email = email
 
+    @staticmethod
+    def get(user_id):
+        # Here you would typically get the user from a database
+        # For this example, we'll just return None if no user is found
+        try:
+            return User(user_id, "User Name", "user@example.com")
+        except Exception:
+            return None
+
+    def __repr__(self):
+        return f"User(id={self.id})"
+
 # Flask-Login helper to retrieve a user from our db
 @login_manager.user_loader
 def load_user(user_id):
@@ -104,16 +116,10 @@ def logout():
     logout_user()
     return redirect(url_for("index"))
 
-def get_env_variable(name):
-    try:
-        return os.environ[name]
-    except KeyError:
-        message = f"Expected environment variable '{name}' not set."
-        raise Exception(message)
-
-API_KEY = get_env_variable("GEMINI_API_KEY")
-GOOGLE_CLIENT_ID = get_env_variable("GOOGLE_CLIENT_ID")
-GOOGLE_CLIENT_SECRET = get_env_variable("GOOGLE_CLIENT_SECRET")
+load_dotenv()  # Load environment variables from .env file
+API_KEY = os.getenv("GEMINI_API_KEY")
+if not API_KEY:
+    raise RuntimeError("API key not found. Please check your environment variables.")
 
 # Initialize the genai library with the API key
 genai.configure(api_key=API_KEY)
