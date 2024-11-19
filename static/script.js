@@ -32,47 +32,65 @@ document.getElementById('themeToggle').addEventListener('click', function() {
     }
 });
 
-document.getElementById('contentForm').addEventListener('submit', function(event) {
-    event.preventDefault();
+function generateContent() {
+    // Show loading indicator
+    const statusMessages = document.getElementById('status-messages');
+    const statusLog = document.getElementById('status-log');
+    const generatedContent = document.getElementById('generatedContent');
+    
+    statusMessages.classList.remove('hidden');
+    generatedContent.innerHTML = '';
+    
+    // Log function
+    function addLog(message) {
+        const time = new Date().toLocaleTimeString();
+        statusLog.innerHTML += `<div>[${time}] ${message}</div>`;
+        statusLog.scrollTop = statusLog.scrollHeight;
+    }
 
-    const tone = document.getElementById('tone').value;
-    const brandVoice = document.getElementById('brand_voice').value;
-    const wordCount = document.getElementById('word_count').value;
-    const mainPrompt = document.getElementById('main_prompt').value;
-    const language = document.getElementById('language').value;
-    const contentStyle = document.getElementById('content_style').value;
+    addLog('Starting content generation...');
 
     const data = {
-        tone: tone,
-        brand_voice: brandVoice,
-        word_count: wordCount,
-        main_prompt: mainPrompt,
-        language: language,
-        content_style: contentStyle
+        tone: document.getElementById('tone').value,
+        brand_voice: document.getElementById('brand-voice').value,
+        word_count: document.getElementById('word-count').value,
+        main_prompt: document.getElementById('main-prompt').value,
+        language: document.getElementById('language').value,
+        content_style: document.getElementById('content-style').value
     };
+
+    addLog('Sending request to AI model...');
 
     fetch('/generate-content', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
         },
         body: JSON.stringify(data)
     })
     .then(response => {
         if (response.status === 401) {
-            // User is not authenticated
+            addLog('Authentication required');
             window.location.href = '/login';
             throw new Error('Please log in to generate content');
         }
+        addLog('Response received, processing...');
         return response.json();
     })
     .then(data => {
         if (data.error) {
+            addLog(`Error: ${data.error}`);
             throw new Error(data.error);
         }
-        document.getElementById('generated-content').innerHTML = data.content;
+        addLog('Content generated successfully!');
+        generatedContent.innerHTML = data.content;
     })
     .catch(error => {
-        document.getElementById('generated-content').innerHTML = `Error: ${error.message}`;
+        addLog(`Error occurred: ${error.message}`);
+        generatedContent.innerHTML = `Error: ${error.message}`;
+    })
+    .finally(() => {
+        // Keep the status log visible but stop the spinner
+        document.querySelector('.animate-spin').classList.remove('animate-spin');
     });
-});
+}
