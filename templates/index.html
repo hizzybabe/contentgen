@@ -78,6 +78,14 @@
     <div class="max-w-3xl mx-auto bg-white shadow-md rounded-lg overflow-hidden">
         <div class="bg-indigo-600 py-6 px-4 sm:px-6 flex justify-between items-center">
             <h1 class="text-3xl font-bold text-white text-center">AI Content Generator</h1>
+            <div class="flex items-center">
+                {% if current_user.is_authenticated %}
+                    <span class="text-white mr-4">Welcome, {{ current_user.name }}!</span>
+                    <a href="{{ url_for('logout') }}" class="text-white hover:text-gray-200">Logout</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="text-white hover:text-gray-200">Login with Google</a>
+                {% endif %}
+            </div>
             <button id="themeToggle" class="p-2 rounded-lg bg-indigo-500 hover:bg-indigo-400 text-white">
                 <svg id="moonIcon" class="w-6 h-6 hidden" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
