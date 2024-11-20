@@ -177,6 +177,25 @@ def generate_content():
             logger.error("Missing required fields in request")
             return jsonify({"error": "Missing required fields"}), 400
 
+        # Get style guidelines
+        style_guide = get_style_guidelines(data.get('style', 'formal').lower())
+
+        # Construct the prompt
+        prompt = f"""
+Please write content with the following specifications:
+
+Tone: {data.get('tone', 'Professional')}
+Style Guidelines: {style_guide}
+Word Count Target: {data.get('wordCount', '500')} words
+Language: {data.get('language', 'English')}
+
+Brand Voice Example (if provided):
+{data.get('brandVoice', 'N/A')}
+
+Content Request:
+{data['prompt']}
+"""
+        
         # Configure Gemini
         genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
         model = genai.GenerativeModel('gemini-pro')
