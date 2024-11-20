@@ -35,12 +35,12 @@ document.getElementById('themeToggle').addEventListener('click', function() {
 function generateContent() {
     // Get form values
     const data = {
-        prompt: document.querySelector('textarea[name="prompt"]').value,
+        prompt: document.querySelector('textarea[name="main_prompt"]').value,
         tone: document.querySelector('select[name="tone"]').value,
         style: document.querySelector('select[name="content_style"]').value,
-        wordCount: document.querySelector('input[name="wordCount"]').value,
+        wordCount: document.querySelector('input[name="word_count"]').value,
         language: document.querySelector('select[name="language"]').value,
-        brandVoice: document.querySelector('textarea[name="brandVoice"]').value
+        brandVoice: document.querySelector('textarea[name="brand_voice"]').value
     };
 
     // Show loading state
