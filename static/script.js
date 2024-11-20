@@ -33,13 +33,14 @@ document.getElementById('themeToggle').addEventListener('click', function() {
 });
 
 function generateContent() {
+    // Get form values
     const data = {
-        prompt: document.getElementById('content-prompt').value || document.querySelector('[name="prompt"]').value,
-        tone: document.getElementById('tone').value,
-        style: document.getElementById('content_style').value,
-        wordCount: document.getElementById('word-count').value || document.querySelector('[name="wordCount"]').value,
-        language: document.getElementById('language').value,
-        brandVoice: document.getElementById('brand-voice').value || document.querySelector('[name="brandVoice"]').value
+        prompt: document.querySelector('textarea[name="prompt"]').value,
+        tone: document.querySelector('select[name="tone"]').value,
+        style: document.querySelector('select[name="content_style"]').value,
+        wordCount: document.querySelector('input[name="wordCount"]').value,
+        language: document.querySelector('select[name="language"]').value,
+        brandVoice: document.querySelector('textarea[name="brandVoice"]').value
     };
 
     // Show loading state
