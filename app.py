@@ -7,9 +7,13 @@ from oauthlib.oauth2 import WebApplicationClient
 import requests
 import json
 from config import *
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)  # Required for session management
+
+# Add this after app initialization
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1)
 
 # User session management setup
 login_manager = LoginManager()
@@ -72,11 +76,10 @@ def login():
     google_provider_cfg = requests.get(GOOGLE_DISCOVERY_URL).json()
     authorization_endpoint = google_provider_cfg["authorization_endpoint"]
 
-    # Use library to construct the request for login and provide
-    # scopes that let you retrieve user's profile from Google
+    # Use library to construct the request for login
     request_uri = client.prepare_request_uri(
         authorization_endpoint,
-        redirect_uri=request.base_url.replace('http://', 'https://') + "/callback",
+        redirect_uri=url_for("callback", _external=True, _scheme='https'),
         scope=["openid", "email", "profile"],
     )
     return redirect(request_uri)
@@ -90,11 +93,11 @@ def callback():
     google_provider_cfg = requests.get(GOOGLE_DISCOVERY_URL).json()
     token_endpoint = google_provider_cfg["token_endpoint"]
 
-    # Get tokens
+    # Prepare and send request to get tokens
     token_url, headers, body = client.prepare_token_request(
         token_endpoint,
-        authorization_response=request.url.replace('http://', 'https://'),
-        redirect_url=request.base_url.replace('http://', 'https://'),
+        authorization_response=request.url,
+        redirect_url=url_for("callback", _external=True, _scheme='https'),
         code=code
     )
     token_response = requests.post(
@@ -220,6 +223,14 @@ def get_style_guidelines(style):
 # Allow HTTP for OAuth2 (only in development)
 if os.environ.get('FLASK_ENV') != 'production':
     os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+
+# Add after app initialization
+if os.environ.get('FLASK_ENV') == 'production':
+    app.config.update(
+        SESSION_COOKIE_SECURE=True,
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE='Lax',
+    )
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))  # Heroku provides the PORT environment
