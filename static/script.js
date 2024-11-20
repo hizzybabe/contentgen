@@ -162,3 +162,12 @@ function addCopyButton(element) {
     
     return copyButton;
 }
+
+function addLog(message) {
+    const logDiv = document.getElementById('status-log');
+    const timestamp = new Date().toLocaleTimeString();
+    const formattedMessage = `[${timestamp}] ${message}`;
+    logDiv.innerHTML += formattedMessage + '\n';
+    logDiv.scrollTop = logDiv.scrollHeight;
+    console.log(formattedMessage); // Also log to console for debugging
+}

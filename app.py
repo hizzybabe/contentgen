@@ -9,6 +9,7 @@ import json
 from config import *
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_cors import CORS
+import logging
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)  # Required for session management
@@ -26,6 +27,10 @@ client = WebApplicationClient(GOOGLE_CLIENT_ID)
 
 # Add this at the top of your file, after imports
 users = {}  # In-memory storage for users
+
+# Set up logging configuration
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 # User class
 class User(UserMixin):
@@ -157,38 +162,35 @@ def index():
 @login_required
 def generate_content():
     try:
+        logger.info(f"Starting content generation for user: {current_user.name}")
+        
         if not current_user.can_generate():
+            logger.warning(f"User {current_user.name} reached daily limit")
             return jsonify({
                 "error": "Daily generation limit reached (15/day). Please try again tomorrow."
             }), 429
 
         data = request.get_json()
+        logger.debug(f"Received data: {data}")
         
-        # Add error handling for required fields
         if not data or 'prompt' not in data:
+            logger.error("Missing required fields in request")
             return jsonify({"error": "Missing required fields"}), 400
 
         # Configure Gemini
         genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
         model = genai.GenerativeModel('gemini-pro')
         
-        # Prepare the prompt
-        prompt = f"""
-        Tone: {data.get('tone', 'Professional')}
-        Style: {data.get('style', 'Standard')}
-        Word Count: {data.get('wordCount', '500')}
-        Language: {data.get('language', 'English')}
-        
-        Brand Voice Example: {data.get('brandVoice', 'N/A')}
-        
-        Content Request: {data['prompt']}
-        """
+        # Log the prompt being sent
+        logger.info(f"Sending prompt to Gemini API for user: {current_user.name}")
         
         # Generate content
         response = model.generate_content(prompt)
+        logger.info("Content generated successfully")
         
         # Increment the user's generation count
         current_user.increment_generations()
+        logger.info(f"Updated generation count for user {current_user.name}: {current_user.generations_today}/15")
         
         return jsonify({
             "content": response.text,
@@ -196,7 +198,7 @@ def generate_content():
         })
         
     except Exception as e:
-        app.logger.error(f"Error generating content: {str(e)}")
+        logger.error(f"Error generating content: {str(e)}", exc_info=True)
         return jsonify({"error": f"Failed to generate content: {str(e)}"}), 500
 
 def get_style_guidelines(style):
@@ -231,6 +233,23 @@ CORS(app, resources={
         "allow_headers": ["Content-Type", "Authorization"]
     }
 })
+
+@app.errorhandler(Exception)
+def handle_error(error):
+    logger.error(f"Unhandled error: {str(error)}", exc_info=True)
+    return jsonify({
+        "error": "An unexpected error occurred. Please try again later.",
+        "details": str(error) if app.debug else None
+    }), 500
+
+@app.after_request
+def after_request(response):
+    logger.info(f"Response status: {response.status_code}")
+    response.headers.add('Access-Control-Allow-Origin', 'https://content.theappshub.com')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    return response
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))  # Heroku provides the PORT environment
