@@ -54,10 +54,15 @@ function generateContent() {
     const statusMessages = document.getElementById('status-messages');
     const generateButton = document.querySelector('button[onclick="generateContent()"]');
     
+    if (!contentDiv || !statusMessages || !generateButton) {
+        console.error('Required DOM elements not found');
+        return;
+    }
+    
     statusMessages.classList.remove('hidden');
     contentDiv.innerHTML = '';
     generateButton.disabled = true;
-    generateButton.innerHTML = 'Generating...';
+    generateButton.textContent = 'Generating...';
     
     addLog('Starting content generation...');
     addLog(`Prompt: "${data.prompt.substring(0, 50)}..."`);
@@ -91,43 +96,60 @@ function generateContent() {
         if (data.error) {
             throw new Error(data.error);
         }
-        addLog('Content generated successfully!');
-        contentDiv.innerHTML = renderMarkdown(data.content);
         
-        // Add copy button to generated content
-        const copyButton = addCopyButton(contentDiv);
-        contentDiv.appendChild(copyButton);
+        if (!data.content) {
+            throw new Error('No content received from server');
+        }
+
+        addLog('Content generated successfully!');
+        
+        // Create a wrapper div for the content
+        const contentWrapper = document.createElement('div');
+        contentWrapper.className = 'relative bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm';
+        contentWrapper.innerHTML = renderMarkdown(data.content);
+        
+        // Clear previous content and append new content
+        contentDiv.innerHTML = '';
+        contentDiv.appendChild(contentWrapper);
+        
+        // Add copy button
+        const copyButton = addCopyButton(contentWrapper);
+        contentWrapper.appendChild(copyButton);
         
         if (data.remaining_generations !== undefined) {
-            document.getElementById('generations-count').textContent = 
-                `${data.remaining_generations}/15`;
+            const generationsCount = document.getElementById('generations-count');
+            if (generationsCount) {
+                generationsCount.textContent = `${data.remaining_generations}/15`;
+            }
             addLog(`Remaining generations today: ${data.remaining_generations}/15`);
         }
     })
     .catch(error => {
         addLog(`Error: ${error.message}`);
-        contentDiv.innerHTML = `<div class="error">${error.message}</div>`;
+        contentDiv.innerHTML = `<div class="error p-4 bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-200 rounded-lg">${error.message}</div>`;
     })
     .finally(() => {
         generateButton.disabled = false;
-        generateButton.innerHTML = 'Generate Content';
-        setTimeout(() => {
-            if (!contentDiv.innerHTML) {
-                statusMessages.classList.add('hidden');
-            }
-        }, 3000);
+        generateButton.textContent = 'Generate Content';
     });
 }
 
 function renderMarkdown(content) {
+    if (!content) return '';
+    
     // Configure marked options
     marked.setOptions({
         breaks: true,
-        gfm: true
+        gfm: true,
+        sanitize: true
     });
     
-    // Convert markdown to HTML
-    return marked.parse(content);
+    try {
+        return marked.parse(content);
+    } catch (error) {
+        console.error('Markdown parsing error:', error);
+        return content; // Return raw content if parsing fails
+    }
 }
 
 function addCopyButton(element) {
