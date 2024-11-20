@@ -43,13 +43,25 @@ function generateContent() {
         brandVoice: document.querySelector('textarea[name="brand_voice"]').value
     };
 
+    // Validate required fields
+    if (!data.prompt) {
+        addLog('Error: Main prompt is required');
+        return;
+    }
+
     // Show loading state
     const contentDiv = document.getElementById('generated-content');
     const statusMessages = document.getElementById('status-messages');
+    const generateButton = document.querySelector('button[onclick="generateContent()"]');
     
     statusMessages.classList.remove('hidden');
     contentDiv.innerHTML = '';
+    generateButton.disabled = true;
+    generateButton.innerHTML = 'Generating...';
+    
     addLog('Starting content generation...');
+    addLog(`Prompt: "${data.prompt.substring(0, 50)}..."`);
+    addLog(`Style: ${data.style}, Tone: ${data.tone}`);
 
     fetch('/generate-content', {
         method: 'POST',
@@ -65,6 +77,7 @@ function generateContent() {
             if (response.status === 429) {
                 throw new Error('Daily generation limit reached');
             } else if (response.status === 401) {
+                addLog('Error: Authentication required');
                 window.location.href = '/login';
                 throw new Error('Please log in to generate content');
             }
@@ -81,16 +94,28 @@ function generateContent() {
         addLog('Content generated successfully!');
         contentDiv.innerHTML = renderMarkdown(data.content);
         
+        // Add copy button to generated content
+        const copyButton = addCopyButton(contentDiv);
+        contentDiv.appendChild(copyButton);
+        
         if (data.remaining_generations !== undefined) {
             document.getElementById('generations-count').textContent = 
                 `${data.remaining_generations}/15`;
+            addLog(`Remaining generations today: ${data.remaining_generations}/15`);
         }
-        statusMessages.classList.add('hidden');
     })
     .catch(error => {
         addLog(`Error: ${error.message}`);
         contentDiv.innerHTML = `<div class="error">${error.message}</div>`;
-        statusMessages.classList.add('hidden');
+    })
+    .finally(() => {
+        generateButton.disabled = false;
+        generateButton.innerHTML = 'Generate Content';
+        setTimeout(() => {
+            if (!contentDiv.innerHTML) {
+                statusMessages.classList.add('hidden');
+            }
+        }, 3000);
     });
 }
 
