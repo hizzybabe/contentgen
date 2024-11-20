@@ -34,17 +34,20 @@ document.getElementById('themeToggle').addEventListener('click', function() {
 
 function generateContent() {
     const data = {
-        prompt: document.getElementById('content-prompt').value,
+        prompt: document.getElementById('content-prompt').value || document.querySelector('[name="prompt"]').value,
         tone: document.getElementById('tone').value,
-        style: document.getElementById('style').value,
-        wordCount: document.getElementById('word-count').value,
+        style: document.getElementById('content_style').value,
+        wordCount: document.getElementById('word-count').value || document.querySelector('[name="wordCount"]').value,
         language: document.getElementById('language').value,
-        brandVoice: document.getElementById('brand-voice').value
+        brandVoice: document.getElementById('brand-voice').value || document.querySelector('[name="brandVoice"]').value
     };
 
     // Show loading state
     const contentDiv = document.getElementById('generated-content');
-    contentDiv.innerHTML = '<div class="loading">Generating content...</div>';
+    const statusMessages = document.getElementById('status-messages');
+    
+    statusMessages.classList.remove('hidden');
+    contentDiv.innerHTML = '';
     addLog('Starting content generation...');
 
     fetch('/generate-content', {
@@ -52,9 +55,8 @@ function generateContent() {
         headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
         },
-        credentials: 'include',  // Important for cookies/session
+        credentials: 'include',
         body: JSON.stringify(data)
     })
     .then(response => {
@@ -82,10 +84,12 @@ function generateContent() {
             document.getElementById('generations-count').textContent = 
                 `${data.remaining_generations}/15`;
         }
+        statusMessages.classList.add('hidden');
     })
     .catch(error => {
         addLog(`Error: ${error.message}`);
         contentDiv.innerHTML = `<div class="error">${error.message}</div>`;
+        statusMessages.classList.add('hidden');
     });
 }
 

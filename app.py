@@ -187,7 +187,7 @@ def generate_content():
         # Generate content
         response = model.generate_content(prompt)
         
-        # Update user's generation count
+        # Increment the user's generation count
         current_user.increment_generations()
         
         return jsonify({
