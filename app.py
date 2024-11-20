@@ -8,6 +8,7 @@ import requests
 import json
 from config import *
 from werkzeug.middleware.proxy_fix import ProxyFix
+from flask_cors import CORS
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)  # Required for session management
@@ -152,61 +153,51 @@ genai.configure(api_key=API_KEY)
 def index():
     return render_template('index.html')
 
-@app.route('/generate-content', methods=['POST'])
+@app.route("/generate-content", methods=["POST"])
 @login_required
 def generate_content():
-    if not current_user.can_generate():
-        return jsonify({
-            "error": "Daily generation limit reached (15/day). Please try again tomorrow."
-        }), 429
-
-    data = request.json
-    tone = data.get("tone")
-    brand_voice = data.get("brand_voice")
-    word_count = data.get("word_count")
-    main_prompt = data.get("main_prompt")
-    language = data.get("language")
-    content_style = data.get("content_style")
-
-    # Updated prompt template with content style
-    prompt = f"""
-    Content Generation Request:
-    
-    Main Prompt: {main_prompt}
-
-    Parameters:
-    - Tone: {tone if tone else 'Not specified'}
-    - Brand Voice: {brand_voice if brand_voice else 'Not specified'}
-    - Word Count: {word_count if word_count else 'Not specified'}
-    - Language: {language if language else 'English'}
-    - Content Style: {content_style if content_style else 'Not specified'}
-
-    Style Guidelines:
-    {get_style_guidelines(content_style)}
-
-    Please generate content based on the main prompt, considering the specified parameters. 
-    The content should be in {language} language and follow the style guidelines provided.
-    """
-
     try:
-        # Use the gemini model to generate content
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        response = model.generate_content(prompt)
-
-        # Handle the response from the Gemini API
-        if response and hasattr(response, 'text'):
-            # Increment the user's generation count
-            current_user.increment_generations()
+        if not current_user.can_generate():
             return jsonify({
-                "content": response.text,
-                "remaining_generations": 15 - current_user.generations_today
-            })
-        else:
-            return jsonify({"error": "Failed to generate content"}), 500
+                "error": "Daily generation limit reached (15/day). Please try again tomorrow."
+            }), 429
 
+        data = request.get_json()
+        
+        # Add error handling for required fields
+        if not data or 'prompt' not in data:
+            return jsonify({"error": "Missing required fields"}), 400
+
+        # Configure Gemini
+        genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
+        model = genai.GenerativeModel('gemini-pro')
+        
+        # Prepare the prompt
+        prompt = f"""
+        Tone: {data.get('tone', 'Professional')}
+        Style: {data.get('style', 'Standard')}
+        Word Count: {data.get('wordCount', '500')}
+        Language: {data.get('language', 'English')}
+        
+        Brand Voice Example: {data.get('brandVoice', 'N/A')}
+        
+        Content Request: {data['prompt']}
+        """
+        
+        # Generate content
+        response = model.generate_content(prompt)
+        
+        # Update user's generation count
+        current_user.increment_generations()
+        
+        return jsonify({
+            "content": response.text,
+            "remaining_generations": 15 - current_user.generations_today
+        })
+        
     except Exception as e:
-        print(f"Error during content generation: {str(e)}")
-        return jsonify({"error": f"Exception occurred: {str(e)}"}), 500
+        app.logger.error(f"Error generating content: {str(e)}")
+        return jsonify({"error": f"Failed to generate content: {str(e)}"}), 500
 
 def get_style_guidelines(style):
     guidelines = {
@@ -231,6 +222,15 @@ if os.environ.get('FLASK_ENV') == 'production':
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE='Lax',
     )
+
+# Enable CORS for all routes
+CORS(app, resources={
+    r"/*": {
+        "origins": ["https://content.theappshub.com", "http://content.theappshub.com"],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }
+})
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))  # Heroku provides the PORT environment

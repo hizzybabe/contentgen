@@ -33,75 +33,59 @@ document.getElementById('themeToggle').addEventListener('click', function() {
 });
 
 function generateContent() {
-    const statusMessages = document.getElementById('status-messages');
-    const statusLog = document.getElementById('status-log');
-    const generatedContent = document.getElementById('generated-content');
-    
-    // Reset previous content and logs
-    statusLog.innerHTML = '';
-    generatedContent.innerHTML = '';
-    
-    // Show status messages if hidden
-    statusMessages.classList.remove('hidden');
-    
-    function addLog(message) {
-        const time = new Date().toLocaleTimeString();
-        statusLog.innerHTML += `<div>[${time}] ${message}</div>`;
-        statusLog.scrollTop = statusLog.scrollHeight;
-    }
-
-    addLog('Starting content generation...');
-
     const data = {
+        prompt: document.getElementById('content-prompt').value,
         tone: document.getElementById('tone').value,
-        brand_voice: document.getElementById('brand_voice').value,
-        word_count: document.getElementById('word_count').value,
-        main_prompt: document.getElementById('main_prompt').value,
+        style: document.getElementById('style').value,
+        wordCount: document.getElementById('word-count').value,
         language: document.getElementById('language').value,
-        content_style: document.getElementById('content_style').value
+        brandVoice: document.getElementById('brand-voice').value
     };
+
+    // Show loading state
+    const contentDiv = document.getElementById('generated-content');
+    contentDiv.innerHTML = '<div class="loading">Generating content...</div>';
+    addLog('Starting content generation...');
 
     fetch('/generate-content', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
         },
+        credentials: 'include',  // Important for cookies/session
         body: JSON.stringify(data)
     })
     .then(response => {
-        if (response.status === 429) {
-            addLog('Daily generation limit reached');
-            throw new Error('Daily generation limit reached (15/day). Please try again tomorrow.');
+        if (!response.ok) {
+            if (response.status === 429) {
+                throw new Error('Daily generation limit reached');
+            } else if (response.status === 401) {
+                window.location.href = '/login';
+                throw new Error('Please log in to generate content');
+            }
+            return response.json().then(err => {
+                throw new Error(err.error || 'Failed to generate content');
+            });
         }
-        if (response.status === 401) {
-            addLog('Authentication required');
-            window.location.href = '/login';
-            throw new Error('Please log in to generate content');
-        }
-        addLog('Response received, processing...');
         return response.json();
     })
     .then(data => {
         if (data.error) {
-            addLog(`Error: ${data.error}`);
             throw new Error(data.error);
         }
         addLog('Content generated successfully!');
-        addLog(`Remaining generations today: ${data.remaining_generations}/15`);
+        contentDiv.innerHTML = renderMarkdown(data.content);
         
-        const contentDiv = document.getElementById('generated-content');
-        contentDiv.className = 'mt-6 generated-content relative p-6 bg-gray-50 dark:bg-gray-800 rounded-lg';
-        
-        const contentWrapper = document.createElement('div');
-        contentWrapper.className = 'markdown-content';
-        contentWrapper.innerHTML = renderMarkdown(data.content);
-        
-        contentDiv.innerHTML = '';
-        contentDiv.appendChild(contentWrapper);
+        if (data.remaining_generations !== undefined) {
+            document.getElementById('generations-count').textContent = 
+                `${data.remaining_generations}/15`;
+        }
     })
     .catch(error => {
-        addLog(`Error occurred: ${error.message}`);
-        generatedContent.innerHTML = `<div class="error">${error.message}</div>`;
+        addLog(`Error: ${error.message}`);
+        contentDiv.innerHTML = `<div class="error">${error.message}</div>`;
     });
 }
 
