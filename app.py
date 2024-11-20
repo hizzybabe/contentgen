@@ -76,7 +76,7 @@ def login():
     # scopes that let you retrieve user's profile from Google
     request_uri = client.prepare_request_uri(
         authorization_endpoint,
-        redirect_uri=request.base_url + "/callback",
+        redirect_uri=request.base_url.replace('http://', 'https://') + "/callback",
         scope=["openid", "email", "profile"],
     )
     return redirect(request_uri)
@@ -93,8 +93,8 @@ def callback():
     # Get tokens
     token_url, headers, body = client.prepare_token_request(
         token_endpoint,
-        authorization_response=request.url,
-        redirect_url=request.base_url,
+        authorization_response=request.url.replace('http://', 'https://'),
+        redirect_url=request.base_url.replace('http://', 'https://'),
         code=code
     )
     token_response = requests.post(
@@ -216,6 +216,10 @@ def get_style_guidelines(style):
         "minimalist": "Use the fewest words possible while maintaining clarity. Focus on essential information only."
     }
     return guidelines.get(style, "Use a balanced, professional writing style.")
+
+# Allow HTTP for OAuth2 (only in development)
+if os.environ.get('FLASK_ENV') != 'production':
+    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))  # Heroku provides the PORT environment
